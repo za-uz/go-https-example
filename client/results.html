@@ -1,0 +1,33 @@
+<title>Results</title>
+<h1>Projects</h1>
+<button onclick=refreshPrj()>🔄</button>
+<br>
+<br>
+<table id=projects border>
+</table>
+<br>
+<a href=./index.html>Back</a>
+<script>
+refreshPrj()
+async function refreshPrj() {
+	let aa = await getAll()
+	let allNames = Object.keys(aa)
+	let prjNames = allNames.filter(n => n[0].toUpperCase() == n[0])
+	let prjList = []
+	prjNames.forEach(n => prjList.push({Name: n, Balance: aa[n]}))
+	prjList.sort((a, b) => b.Balance - a.Balance)
+	let table = document.getElementById('projects')
+	table.innerHTML = ''
+	prjList.forEach((prj, index) => {
+		let row = table.insertRow(-1)
+		row.insertCell(0).innerHTML = index + 1
+		row.insertCell(1).innerHTML = prj.Name
+		row.insertCell(2).innerHTML = prj.Balance
+	})
+}
+async function getAll() {
+	let res = await fetch("./r")
+	let j = await res.json()
+	return j
+}
+</script>

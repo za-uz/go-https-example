@@ -1,0 +1,139 @@
+<title>Elevator Pitch</title>
+<div id=login>
+<h1>"Login"</h1>
+<input placeholder=username id=username />
+<br>
+<input placeholder=password type=password id=password />
+<button onclick=login()>"Login"</button>
+</div>
+<div id=invest hidden>
+<i>Project:</i>
+<select id=projects>
+</select>
+<button onclick=refreshPrj()>🔄</button>
+<br>
+<i>Invest:</i>
+<button onclick=spendBtn(25000)>25.000</button>
+<button onclick=spendBtn(10000)>10.000</button>
+<button onclick=spendBtn(5000)>5.000</button>
+<button onclick=spendBtn(1000)>1000</button>
+<br>
+Your Balance:
+<b id=balance>null</b>
+<button onclick=refreshBal()>🔄</button>
+</div>
+<a href=./results.html>Results</a>
+<script>
+var user = localStorage.getItem("username")
+var password = localStorage.getItem("password")
+loginMode()
+// storing password in localstorag is good idea!
+async function login() {
+	user = document.getElementById('username').value
+	password = document.getElementById('password').value
+	store()
+	investMode()
+	refresh()
+}
+
+function store() {
+	localStorage.setItem("username", user)
+	localStorage.setItem("password", password)
+}
+
+async function investMode() {
+	document.getElementById('login').hidden = true
+	document.getElementById('invest').hidden = false
+}
+
+async function loginMode() {
+	document.getElementById('login').hidden = false
+	document.getElementById('invest').hidden = true
+	document.getElementById('username').value = user
+	document.getElementById('password').value = password
+	
+}
+
+async function spendBtn(amount) {
+	let bal = document.getElementById('balance')
+	if (bal.innerHTML < amount) {
+		alert("Money is finite here")
+		refreshBal()
+		return
+	}
+	let to = document.getElementById('projects').value
+	let now = new Date()
+	let digest = await getDigest(user, to, amount, now, password)
+	console.log(digest)
+	if (await spend(user, to, amount, digest, now)) {
+		console.log("spend")
+	} else {
+		alert("-,-")
+		loginMode()
+	}
+	refreshBal()
+}
+
+async function spend(from, to, amount, digest, date) {
+	let res = await fetch("./r", {
+		method: "POST",
+		body: JSON.stringify({
+			From: from,
+			To: to,
+			Amount: amount,
+			Digest: digest,
+			Time: date
+		}),
+	})
+	return res.ok
+}
+
+async function getBal(name) {
+	let res = await fetch("./r/" + name)
+	let j = await res.json()
+	return j.Balance
+}
+
+async function refreshBal() {
+	let name = user
+	let display = document.getElementById('balance')
+	display.innerHTML = await getBal(name)
+}
+
+async function getAll() {
+	let res = await fetch("./r")
+	let j = await res.json()
+	return j
+}
+
+async function refreshPrj() {
+	let all = await getAll()
+	let allNames = Object.keys(all)
+	let prj = allNames.filter(n => n[0].toUpperCase() == n[0])
+	let dd = document.getElementById('projects')
+	dd.innerHTML = ''
+	prj = prj.sort()
+	prj.forEach(p => dd.append(new Option(p)))
+}
+
+async function refresh() {
+	refreshPrj()
+	refreshBal()
+}
+
+/**
+ * @param password should be a key, not a password
+ */
+async function getDigest(from, to, amount, date, password) {
+	return keccak(from + to + amount + date.getTime() + password)
+}
+
+async function keccak(s) {
+	let srcbytes = new TextEncoder().encode(s)
+	let buffer = await crypto.subtle.digest('SHA-384', srcbytes)
+	let dstbytes = new Uint8Array(buffer)
+	let result = ""
+	dstbytes.forEach(b => result += String.fromCharCode(b))
+	return btoa(result)
+}
+</script>
